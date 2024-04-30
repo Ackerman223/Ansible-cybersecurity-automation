@@ -1,0 +1,40 @@
+---
+- name: Cybersecurity Analyst Server Configuration
+  hosts: cybersecurity_analyst_server
+  become: true
+  vars:
+    security_tools:
+      - wireshark
+      - snort
+      - osquery
+      - YARA
+      - Volatility
+      - Suricata
+      # Add other security tools here
+
+  tasks:
+    - name: Install security tools
+      package:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ security_tools }}"
+
+    - name: Read usernames from users.txt file
+      ansible.builtin.slurp:
+        src: users_cyberanalist.txt # replaced with the file containing users_cyberanalist
+      register: user_list
+
+    - name: Create users from the users.txt file
+      ansible.builtin.user:
+        name: "{{ item }}"
+        password: "xxxxxxx"
+        shell: /bin/bash
+        groups: pentesters
+        append: yes
+      loop: "{{ user_list['content'] | b64decode | split('\n') | select('string') }}"
+
+    - name: Limit access to sudo
+      copy:
+        dest: /etc/sudoers.d/pentesters
+        content: "%pentesters ALL=(ALL) NOPASSWD: ALL"
+        mode: '0440'
